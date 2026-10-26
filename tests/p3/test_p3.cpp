@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <iostream>
+
 namespace fs = std::filesystem;
 
 namespace {
@@ -378,12 +378,19 @@ TEST(calc_divide_by_zero_parentheses) {
     CHECK(err == "division by zero");
 }
 
+
+
+
+
+
+
+
 //custom test 1
 TEST(calc_nested_parentheses) 
 {
     double v = 0;
     std::string err;
-    REQUIRE(eval("1 - (2 * (3 + 4) - 5)", &v, &err));
+    REQUIRE(eval("1 - (2 * ((((3 + 4) + 1) - 1) * 1) - 5)", &v, &err));
     CHECK(v == -8);
 }
 
