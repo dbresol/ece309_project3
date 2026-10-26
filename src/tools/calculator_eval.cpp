@@ -14,13 +14,21 @@
 bool operate(std::stack<double>& values, std::stack<CalcToken>& ops, 
     std::string* error)
 {
-    /*new*/
+    //if there are two operands in a row, there are not enough values
     if (values.size() < 2)
+    {
+        *error = "Not enough values";
+        return false;
+    }
+
+    //if there is no left parentheses, there are not enough operands
+    if (ops.size() < 1)
     {
         *error = "Not enough operands";
         return false;
     }
 
+    //pop operator and the two values needed
     CalcToken::Kind op = ops.top().kind;
     ops.pop();
     double rVal = values.top();
@@ -28,12 +36,14 @@ bool operate(std::stack<double>& values, std::stack<CalcToken>& ops,
     double lVal = values.top();
     values.pop();
 
+    //if it's going to divide by zero, return error
     if ((rVal == 0) && (op == CalcToken::Kind::Divide))
     {
         *error = "division by zero";
         return false;
     }
 
+    //divide by zero already considered, so no special behavior there
     auto res = (op == CalcToken::Kind::Plus) ? (lVal + rVal) 
     : (op == CalcToken::Kind::Minus) ? (lVal - rVal) 
     : (op == CalcToken::Kind::Times) ? (lVal * rVal) 
@@ -55,6 +65,7 @@ bool calc_evaluate(const std::vector<CalcToken>& tokens, double* out,
     std::stack<double> values;
     std::stack<CalcToken> ops;
 
+    //through each token
     for (size_t i = 0; i < tokens.size(); i++)
     {
         CalcToken token = tokens[i];
@@ -68,26 +79,33 @@ bool calc_evaluate(const std::vector<CalcToken>& tokens, double* out,
             topKind = ops.top().kind;
         }
         */
-        if (tKind == CalcToken::Kind::Number) //if it's a number, just push
+
+        //if it's a number, just push
+        if (tKind == CalcToken::Kind::Number) 
         {
             values.push(tVal);
             continue;
         }
 
-        if (tKind == CalcToken::Kind::LParen) //if it's a (, just push
+        //if it's a (, just push
+        if (tKind == CalcToken::Kind::LParen) 
         {
             ops.push(token);
             continue;
         }
-
-        if (tKind == CalcToken::Kind::RParen) //if it's a ), then...
+        
+        //if it's a ), operate until left parentheses is reached
+        if (tKind == CalcToken::Kind::RParen)
         {
+            //return error if left parentheses don't exist
             if (ops.empty()) 
             {
                 *error = "Parentheses are mismatched";
                 return false;
             }
-            while (!ops.empty() && ops.top().kind != CalcToken::Kind::LParen)
+
+            //operate until it finds a left parentheses. if there is none, it will return an error in operate
+            while (ops.top().kind != CalcToken::Kind::LParen)
             {
                 if (!operate(values, ops, error)) 
                 {
@@ -95,45 +113,50 @@ bool calc_evaluate(const std::vector<CalcToken>& tokens, double* out,
                 }
             }
             
-            ops.pop(); //pop the (
+            //pop the (
+            ops.pop(); 
             continue;
         }
         
-          
+        //if its a plus or a minus or a times or a divide
         if((tKind == CalcToken::Kind::Plus)
         || (tKind == CalcToken::Kind::Minus)
         || (tKind == CalcToken::Kind::Times)
         || (tKind == CalcToken::Kind::Divide))
         {
+            //if it's the only operator, push it
             if (ops.empty())
             {
                 ops.push(token);
                 continue;
             }
 
+            //get precedence of incoming token
             int prec = ((tKind == CalcToken::Kind::Plus) 
             || (tKind == CalcToken::Kind::Minus)) ? 1 : 2;
 
+            //get precedence of token on top of stack
             int topPrec = ((ops.top().kind == CalcToken::Kind::Plus) 
             || (ops.top().kind == CalcToken::Kind::Minus)) ? 1 : 2;
 
-            while (!ops.empty() //while there is an operator on the stack AND the top operator is higher priority than the incoming one AND the top parameter is not opening paretheses
+            //while there is an operator on the stack 
+            //AND the top operator is higher priority than the incoming one 
+            //AND the top parameter is not a left paretheses
+            while (!ops.empty() 
             && (topPrec >= prec) 
             && (ops.top().kind != CalcToken::Kind::LParen))
             {
+
+                //get the precendence of the top operator
                 topPrec = ((ops.top().kind == CalcToken::Kind::Plus) 
                     || (ops.top().kind == CalcToken::Kind::Minus)) ? 1 : 2;
-                bool success = operate(values, ops, error);
-                if (!success)
+                if(!operate(values, ops, error))
                 {
                     return false;
                 }
-                //if (!ops.empty())
-                //{
-                 //   topPrec = ((ops.top().kind == CalcToken::Kind::Plus) 
-                   // || (ops.top().kind == CalcToken::Kind::Minus)) ? 1 : 2;
-                //}
             }
+
+
             ops.push(token);
             continue;
         }
@@ -142,7 +165,7 @@ bool calc_evaluate(const std::vector<CalcToken>& tokens, double* out,
     //do remaining operations now that there should be no parentheses
     while (!ops.empty()) 
     {
-        //if there is still an open parentheses, error
+        //if there is still a left parentheses, error
         if (ops.top().kind == CalcToken::Kind::LParen) 
         {
             if (error) *error = "mismatched parentheses";
@@ -162,6 +185,5 @@ bool calc_evaluate(const std::vector<CalcToken>& tokens, double* out,
     }
     
     *out = values.top();
-    // *error = "calc_evaluate not implemented yet";   // TODO
     return true;
 }

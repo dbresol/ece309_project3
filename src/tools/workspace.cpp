@@ -14,6 +14,7 @@ namespace fs = std::filesystem;
 bool Workspace::resolve(std::string_view user_path, fs::path* out,
                         std::string* reason) const {
 
+    //if the path is empty, error
     if (user_path.empty())
     {
      
@@ -21,18 +22,21 @@ bool Workspace::resolve(std::string_view user_path, fs::path* out,
         return false;
     }
 
-    if (user_path.find('\0') != std::string_view::npos) //there are no null characters before the terminating character
+    //if there are no null characters before the terminating character, error
+    if (user_path.find('\0') != std::string_view::npos)
     {
         *reason = "user_path contains a null character";
         return false;
     }
     
     std::filesystem::path p = std::string(user_path);
+    //if the path is absolute, error
     if (p.is_absolute())
     {
         *reason = "user_path is an absolute path. Only use paths relative to the workspace";
         return false;
     }
+    //if the path contains the root path, error
     if (p.has_root_path())
     {
         *reason = "user_path contains the root path. Only use paths relative to the workspace";   
@@ -40,18 +44,20 @@ bool Workspace::resolve(std::string_view user_path, fs::path* out,
     }
     
     std::filesystem::path n = p.lexically_normal();
+    //if the path goes above the root, error
     if (*n.begin() == "..")
     {
         *reason = "user_path goes above root";
         return false;
     }
 
+    //if the path is just the root itself, return root
     if (n == ".")
     {
         *out = root();
         return true;
     }
-    else
+    else //if the path is not jus the root, add the root to the path
     {
         *out = root() / n;
         return true;
